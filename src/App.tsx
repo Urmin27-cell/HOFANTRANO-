@@ -18,6 +18,7 @@ import { TenantReceipts } from './pages/TenantReceipts';
 import { SharedRetard } from './pages/SharedRetard';
 import { SharedHistorique } from './pages/SharedHistorique';
 import { SharedNotifications } from './pages/SharedNotifications';
+import { InstallPWA } from './components/InstallPWA';
 import { getCurrentSession, setCurrentSession, AuthSession, dbStore } from './lib/firebase';
 
 export default function App() {
@@ -121,6 +122,7 @@ export default function App() {
           setActiveTab(newSes.role === 'MPANOFA' ? 'tenant-dashboard' : 'dashboard');
         }}
       />
+      <InstallPWA />
     </div>
   );
 }

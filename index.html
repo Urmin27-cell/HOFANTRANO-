@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HOFANTRANO - Fitantanana Trano Hofaina</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#059669">
     <meta name="description" content="Fitaovana fitantanana trano hofaina, mpanofa, hofan-trano, fandoavam-bola ary reçus PDF ho an'i Madagasikara." />
     <meta property="og:title" content="HOFANTRANO - Fitantanana Trano Hofaina" />
     <meta property="og:description" content="Fitaovana fitantanana trano hofaina, mpanofa, hofan-trano, fandoavam-bola ary reçus PDF ho an'i Madagasikara." />
@@ -13,6 +15,25 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+      });
+
+      function showInstallPrompt() {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('User accepted the A2HS prompt');
+            }
+            deferredPrompt = null;
+          });
+        }
+      }
+    </script>
   </body>
 </html>
 
