@@ -33,14 +33,14 @@ export const AdminPlatform: React.FC<AdminPlatformProps> = ({ onBackToApp }) => 
   // Selected landlord for inspecting tenants
   const [selectedLandlordForTenants, setSelectedLandlordForTenants] = useState<LandlordProfile | null>(null);
 
-  // Verify PIN (080600)
+  // Verify PIN (080600) secretly
   const handlePinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pinInput === '080600') {
+    if (pinInput.trim() === '080600') {
       setIsAuthenticated(true);
       setPinError('');
     } else {
-      setPinError('Diso ny Code PIN Admin Plateforme (080600)!');
+      setPinError('Diso ny Code PIN miafina nampidirinao!');
     }
   };
 
@@ -102,23 +102,23 @@ export const AdminPlatform: React.FC<AdminPlatformProps> = ({ onBackToApp }) => 
     }
   };
 
-  // PIN LOGIN GATE
+  // PIN LOGIN GATE (COMPLETELY SECRET)
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
         <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl text-center">
           <div className="w-16 h-16 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto mb-4">
-            <ShieldCheck className="w-9 h-9" />
+            <Lock className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Admin Plateforme</h2>
+          <h2 className="text-2xl font-black text-white">Fidirana Miafina</h2>
           <p className="text-xs text-slate-400 mt-1 mb-6">
-            Faritra voaaro ho an'ny fitantanana ankapobeny ny HOFANTRANO (/admin)
+            Faritra voaaro manokana
           </p>
 
           <form onSubmit={handlePinSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 text-left mb-1.5">
-                Code PIN Fidirana (080600)
+                Code PIN Miafina
               </label>
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -127,7 +127,7 @@ export const AdminPlatform: React.FC<AdminPlatformProps> = ({ onBackToApp }) => 
                   maxLength={6}
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value)}
-                  placeholder="Ampidiro ny PIN 080600"
+                  placeholder="••••••"
                   className="w-full pl-11 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-lg font-mono text-emerald-400 font-bold tracking-widest focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   autoFocus
                 />
@@ -142,9 +142,9 @@ export const AdminPlatform: React.FC<AdminPlatformProps> = ({ onBackToApp }) => 
 
             <button
               type="submit"
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-900/40 transition"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-900/40 transition active:scale-95"
             >
-              Hiditra ao amin'ny Admin Plateforme
+              Hiditra
             </button>
 
             <button

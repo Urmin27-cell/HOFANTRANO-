@@ -158,7 +158,10 @@ const INITIAL_ACCOUNTS: PaymentAccount[] = [
 
 function getStoredData<T>(key: string, initial: T): T {
   try {
-    const item = localStorage.getItem(`hofantrano_v6_${key}`);
+    // Check primary permanent key first, then fallbacks
+    const item = localStorage.getItem(`hofantrano_permanent_${key}`) || 
+                 localStorage.getItem(`hofantrano_v6_${key}`) || 
+                 localStorage.getItem(`hofantrano_v5_${key}`);
     return item ? JSON.parse(item) : initial;
   } catch {
     return initial;
@@ -167,7 +170,10 @@ function getStoredData<T>(key: string, initial: T): T {
 
 function setStoredData<T>(key: string, data: T): void {
   try {
-    localStorage.setItem(`hofantrano_v6_${key}`, JSON.stringify(data));
+    const serialized = JSON.stringify(data);
+    localStorage.setItem(`hofantrano_permanent_${key}`, serialized);
+    // Keep backwards compatibility keys so nothing is ever lost
+    localStorage.setItem(`hofantrano_v6_${key}`, serialized);
   } catch (e) {
     console.error('Error saving to localStorage', e);
   }
@@ -182,12 +188,28 @@ export interface AuthSession {
 }
 
 export const getCurrentSession = (): AuthSession => {
-  return getStoredData<AuthSession>('auth_session', {
-    isAuthenticated: false,
+  const admin = dbStore.getAdmin();
+  const session = getStoredData<AuthSession>('auth_session', {
+    isAuthenticated: admin.isRegistered,
     role: 'TOMPO_TRANO',
-    userId: 'admin-1',
-    fullName: 'Tompon-trano'
+    userId: admin.id || 'admin-1',
+    fullName: admin.adminName || 'Tompon-trano'
   });
+
+  // Permanence rule: If admin is registered, keep them logged in automatically!
+  if (admin.isRegistered) {
+    if (session.role === 'MPANOFA' && session.isAuthenticated) {
+      return session;
+    }
+    return {
+      isAuthenticated: true,
+      role: 'TOMPO_TRANO',
+      userId: admin.id || 'admin-1',
+      fullName: admin.adminName || 'Tompon-trano'
+    };
+  }
+
+  return session;
 };
 
 export const setCurrentSession = (session: AuthSession) => {
@@ -213,11 +235,37 @@ export const dbStore = {
     });
   },
 
+  syncFromFirestore: async (): Promise<LandlordProfile> => {
+    try {
+      const snap = await getDoc(doc(db, 'landlords', 'admin-1'));
+      if (snap.exists()) {
+        const firestoreAdmin = snap.data() as LandlordProfile;
+        if (firestoreAdmin && (firestoreAdmin.isRegistered || firestoreAdmin.adminName)) {
+          const current = dbStore.getAdmin();
+          const merged: LandlordProfile = { ...current, ...firestoreAdmin, isRegistered: true };
+          setStoredData('admin_profile', merged);
+          return merged;
+        }
+      }
+    } catch (e) {
+      console.warn('Firestore sync note:', e);
+    }
+    return dbStore.getAdmin();
+  },
+
   saveAdmin: (admin: Partial<LandlordProfile>) => {
     const current = dbStore.getAdmin();
-    const updated: LandlordProfile = { ...current, ...admin };
+    const updated: LandlordProfile = { ...current, ...admin, isRegistered: true };
     setStoredData('admin_profile', updated);
     
+    // Automatically keep session authenticated permanently
+    setStoredData('auth_session', {
+      isAuthenticated: true,
+      role: 'TOMPO_TRANO',
+      userId: updated.id,
+      fullName: updated.adminName
+    });
+
     // Asynchronously sync to Firestore collection 'landlords'
     try {
       setDoc(doc(db, 'landlords', updated.id), updated, { merge: true }).catch(err => {

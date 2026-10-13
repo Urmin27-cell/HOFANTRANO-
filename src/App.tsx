@@ -28,7 +28,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(session.role === 'MPANOFA' ? 'tenant-dashboard' : 'dashboard');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(!session.isAuthenticated);
   
-  // Track /admin platform route
+  // Track /admin platform route (Secret access via URL /admin or secret gesture)
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(
     typeof window !== 'undefined' && (
       window.location.pathname === '/admin' || 
@@ -37,7 +37,22 @@ export default function App() {
     )
   );
 
-  // Listen to browser URL changes
+  // Sync landlord from Firestore on startup & keep session permanently
+  useEffect(() => {
+    dbStore.syncFromFirestore().then((admin) => {
+      if (admin && admin.isRegistered) {
+        const ses = getCurrentSession();
+        setSession(ses);
+        setIsAuthModalOpen(false);
+      }
+    });
+
+    if (session.isAuthenticated) {
+      requestNotificationPermission(session.userId);
+    }
+  }, []);
+
+  // Listen to browser URL changes for secret /admin route
   useEffect(() => {
     const handlePopState = () => {
       const isPathAdmin = window.location.pathname === '/admin' || window.location.hash === '#/admin';
@@ -51,14 +66,6 @@ export default function App() {
       window.removeEventListener('hashchange', handlePopState);
     };
   }, []);
-
-  useEffect(() => {
-    if (session.isAuthenticated) {
-      requestNotificationPermission(session.userId);
-    } else {
-      setIsAuthModalOpen(true);
-    }
-  }, [session.isAuthenticated, session.userId]);
 
   const handleOpenAdminPlatform = () => {
     setIsPlatformAdmin(true);
@@ -79,7 +86,7 @@ export default function App() {
     const loggedOutSession: AuthSession = {
       isAuthenticated: false,
       role: 'TOMPO_TRANO',
-      userId: 'admin-1',
+      userId: admin.id || 'admin-1',
       fullName: admin.adminName
     };
     setCurrentSession(loggedOutSession);
@@ -87,7 +94,7 @@ export default function App() {
     setIsAuthModalOpen(true);
   };
 
-  // If on /admin, show dedicated Platform Administration
+  // If on /admin, show dedicated Secret Platform Administration
   if (isPlatformAdmin) {
     return <AdminPlatform onBackToApp={handleBackFromAdminPlatform} />;
   }
@@ -97,7 +104,7 @@ export default function App() {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-5">
           <img src="/logo-192.png" alt="HOFANTRANO" className="w-20 h-20 rounded-3xl shadow-xl border border-emerald-500/30" />
-          <h2 className="text-2xl font-black text-slate-900">Tongasoa eto amin'ny HOFANTRANO</h2>
+          <h2 className="text-2xl font-black text-slate-900">HOFANTRANO</h2>
           <p className="text-sm text-slate-600 max-w-md">
             Mila miditra (Connexion) amin'ny Code PIN ianao vao afaka mampiasa ny fampiharana.
           </p>

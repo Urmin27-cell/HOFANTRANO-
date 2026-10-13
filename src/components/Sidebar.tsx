@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { 
   Building, Users, CreditCard, CheckCircle2, History, 
-  Bell, LayoutDashboard, ShieldCheck, Wallet, Receipt, AlertTriangle, Home, Shield
+  Bell, LayoutDashboard, ShieldCheck, Wallet, Receipt, AlertTriangle, Home
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -9,7 +9,7 @@ interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   role: UserRole;
-  onOpenAdminPlatform: () => void;
+  onOpenAdminPlatform?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, role, onOpenAdminPlatform }) => {
@@ -35,9 +35,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, role,
 
   const items = role === 'TOMPO_TRANO' ? adminMenuItems : tenantMenuItems;
 
+  const secretClickCount = useRef(0);
+  const secretClickTimer = useRef<any>(null);
+
+  const handleSecretLogoClick = () => {
+    secretClickCount.current += 1;
+    if (secretClickTimer.current) clearTimeout(secretClickTimer.current);
+    secretClickTimer.current = setTimeout(() => {
+      secretClickCount.current = 0;
+    }, 2500);
+
+    if (secretClickCount.current >= 5) {
+      secretClickCount.current = 0;
+      if (onOpenAdminPlatform) onOpenAdminPlatform();
+      else window.location.href = '/admin';
+    }
+  };
+
   return (
     <aside className="w-64 bg-slate-900 text-slate-300 flex-col h-screen sticky top-0 border-r border-slate-800 shadow-xl shrink-0 hidden md:flex">
-      <div className="p-5 border-b border-slate-800 flex items-center space-x-3">
+      <div 
+        className="p-5 border-b border-slate-800 flex items-center space-x-3 cursor-pointer select-none"
+        onClick={handleSecretLogoClick}
+      >
         <img 
           src="/logo-192.png" 
           alt="HOFANTRANO" 
@@ -70,21 +90,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, role,
         })}
       </nav>
 
-      {/* Footer Area with Profile & Admin Platform Link */}
-      <div className="p-3 border-t border-slate-800 bg-slate-950/60 space-y-2">
-        <button
-          onClick={onOpenAdminPlatform}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 hover:border-slate-700 transition"
-        >
-          <div className="flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-emerald-400" />
-            <span className="text-[11px] font-bold">Admin Plateforme</span>
-          </div>
-          <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/40">
-            /admin
-          </span>
-        </button>
-
+      {/* Footer Area with Profile */}
+      <div className="p-3 border-t border-slate-800 bg-slate-950/60">
         <div className="flex items-center space-x-2.5 px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-800/60">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <div className="overflow-hidden">

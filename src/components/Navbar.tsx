@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, Menu, X, LogOut, Download, Shield, Smartphone } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Bell, Menu, X, LogOut, Download } from 'lucide-react';
 import { UserProfile, AppNotification } from '../types';
 import { dbStore, getCurrentSession } from '../lib/firebase';
 import { usePWAInstall } from './usePWAInstall';
@@ -10,7 +10,7 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onLogout: () => void;
-  onOpenAdminPlatform: () => void;
+  onOpenAdminPlatform?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
@@ -24,6 +24,24 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [notifications, setNotifications] = useState<AppNotification[]>(dbStore.getNotifications());
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Secret click counter on logo to access /admin if needed
+  const secretClickCount = useRef(0);
+  const secretClickTimer = useRef<any>(null);
+
+  const handleSecretLogoClick = () => {
+    secretClickCount.current += 1;
+    if (secretClickTimer.current) clearTimeout(secretClickTimer.current);
+    secretClickTimer.current = setTimeout(() => {
+      secretClickCount.current = 0;
+    }, 2500);
+
+    if (secretClickCount.current >= 5) {
+      secretClickCount.current = 0;
+      if (onOpenAdminPlatform) onOpenAdminPlatform();
+      else window.location.href = '/admin';
+    }
+  };
 
   const { isInstallable, isInstalled, install } = usePWAInstall();
 
@@ -49,7 +67,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (isInstallable) {
       await install();
     } else {
-      // Trigger prompt / modal by finding the InstallPWA button
       const pwaBtn = document.querySelector('[data-pwa-install-trigger]') as HTMLButtonElement;
       if (pwaBtn) pwaBtn.click();
     }
@@ -84,7 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer select-none" onClick={handleSecretLogoClick}>
             <img src="/logo-192.png" alt="HOFANTRANO" className="w-8 h-8 rounded-lg shadow-sm md:hidden" />
             <div>
               <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -97,27 +114,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Actions */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* PWA INSTALL BUTTON (MANDATORY IN SCREEN) */}
+          {/* PWA INSTALL BUTTON */}
           {!isInstalled && (
             <button
               onClick={handleInstallClick}
               className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 transition active:scale-95"
-              title="Installer l'application HOFANTRANO sur votre appareil"
+              title="Installer l'application HOFANTRANO"
             >
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-bounce" />
               <span>Installer</span>
             </button>
           )}
-
-          {/* Quick link to /admin */}
-          <button
-            onClick={onOpenAdminPlatform}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-semibold border border-slate-200 transition"
-            title="Admin Plateforme (/admin)"
-          >
-            <Shield className="w-3.5 h-3.5 text-emerald-600" />
-            <span>/admin</span>
-          </button>
 
           {/* Notification Bell */}
           <div className="relative">
@@ -201,18 +208,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               {item.label}
             </button>
           ))}
-          <div className="pt-2 border-t border-slate-800">
-            <button
-              onClick={() => {
-                onOpenAdminPlatform();
-                setMobileMenuOpen(false);
-              }}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-emerald-400 hover:bg-slate-800 flex items-center gap-2"
-            >
-              <Shield className="w-4 h-4" />
-              <span>Admin Plateforme (/admin)</span>
-            </button>
-          </div>
         </div>
       )}
     </header>
