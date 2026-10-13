@@ -19,7 +19,7 @@ import { SharedRetard } from './pages/SharedRetard';
 import { SharedHistorique } from './pages/SharedHistorique';
 import { SharedNotifications } from './pages/SharedNotifications';
 import { InstallPWA } from './components/InstallPWA';
-import { getCurrentSession, setCurrentSession, AuthSession, dbStore } from './lib/firebase';
+import { getCurrentSession, setCurrentSession, AuthSession, dbStore, requestNotificationPermission } from './lib/firebase';
 
 export default function App() {
   const [session, setSession] = useState<AuthSession>(getCurrentSession());
@@ -27,10 +27,12 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(!session.isAuthenticated);
 
   useEffect(() => {
-    if (!session.isAuthenticated) {
+    if (session.isAuthenticated) {
+      requestNotificationPermission(session.userId);
+    } else {
       setIsAuthModalOpen(true);
     }
-  }, [session.isAuthenticated]);
+  }, [session.isAuthenticated, session.userId]);
 
   const handleLogout = () => {
     const admin = dbStore.getAdmin();
