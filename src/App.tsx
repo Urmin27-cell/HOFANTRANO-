@@ -18,13 +18,39 @@ import { TenantReceipts } from './pages/TenantReceipts';
 import { SharedRetard } from './pages/SharedRetard';
 import { SharedHistorique } from './pages/SharedHistorique';
 import { SharedNotifications } from './pages/SharedNotifications';
+import { AdminPlatform } from './pages/AdminPlatform';
 import { InstallPWA } from './components/InstallPWA';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { getCurrentSession, setCurrentSession, AuthSession, dbStore, requestNotificationPermission } from './lib/firebase';
 
 export default function App() {
   const [session, setSession] = useState<AuthSession>(getCurrentSession());
   const [activeTab, setActiveTab] = useState(session.role === 'MPANOFA' ? 'tenant-dashboard' : 'dashboard');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(!session.isAuthenticated);
+  
+  // Track /admin platform route
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(
+    typeof window !== 'undefined' && (
+      window.location.pathname === '/admin' || 
+      window.location.hash === '#/admin' ||
+      window.location.search.includes('admin')
+    )
+  );
+
+  // Listen to browser URL changes
+  useEffect(() => {
+    const handlePopState = () => {
+      const isPathAdmin = window.location.pathname === '/admin' || window.location.hash === '#/admin';
+      setIsPlatformAdmin(isPathAdmin);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
+  }, []);
 
   useEffect(() => {
     if (session.isAuthenticated) {
@@ -33,6 +59,20 @@ export default function App() {
       setIsAuthModalOpen(true);
     }
   }, [session.isAuthenticated, session.userId]);
+
+  const handleOpenAdminPlatform = () => {
+    setIsPlatformAdmin(true);
+    try {
+      window.history.pushState({}, '', '/admin');
+    } catch (e) {}
+  };
+
+  const handleBackFromAdminPlatform = () => {
+    setIsPlatformAdmin(false);
+    try {
+      window.history.pushState({}, '', '/');
+    } catch (e) {}
+  };
 
   const handleLogout = () => {
     const admin = dbStore.getAdmin();
@@ -47,14 +87,23 @@ export default function App() {
     setIsAuthModalOpen(true);
   };
 
+  // If on /admin, show dedicated Platform Administration
+  if (isPlatformAdmin) {
+    return <AdminPlatform onBackToApp={handleBackFromAdminPlatform} />;
+  }
+
   const renderContent = () => {
     if (!session.isAuthenticated) {
       return (
-        <div className="flex flex-col items-center justify-center h-96 text-center space-y-4">
-          <h2 className="text-2xl font-bold text-slate-900">Mila miditra (Connexion) ianao vao afaka mampiasa ny HOFANTRANO</h2>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 space-y-5">
+          <img src="/logo-192.png" alt="HOFANTRANO" className="w-20 h-20 rounded-3xl shadow-xl border border-emerald-500/30" />
+          <h2 className="text-2xl font-black text-slate-900">Tongasoa eto amin'ny HOFANTRANO</h2>
+          <p className="text-sm text-slate-600 max-w-md">
+            Mila miditra (Connexion) amin'ny Code PIN ianao vao afaka mampiasa ny fampiharana.
+          </p>
           <button
             onClick={() => setIsAuthModalOpen(true)}
-            className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-900/20 hover:bg-emerald-700 transition"
+            className="px-8 py-3.5 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-900/25 hover:bg-emerald-700 transition active:scale-95"
           >
             Sokafy ny Fidirana (Login PIN)
           </button>
@@ -88,11 +137,14 @@ export default function App() {
     }
   };
 
-  const admin = dbStore.getAdmin();
-
   return (
     <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} role={session.role} />
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        role={session.role}
+        onOpenAdminPlatform={handleOpenAdminPlatform}
+      />
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Navbar 
@@ -107,6 +159,7 @@ export default function App() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onLogout={handleLogout}
+          onOpenAdminPlatform={handleOpenAdminPlatform}
         />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
@@ -124,6 +177,8 @@ export default function App() {
           setActiveTab(newSes.role === 'MPANOFA' ? 'tenant-dashboard' : 'dashboard');
         }}
       />
+      
+      <OfflineIndicator />
       <InstallPWA />
     </div>
   );

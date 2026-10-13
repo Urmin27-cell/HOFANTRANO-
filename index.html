@@ -2,38 +2,32 @@
 <html lang="mg">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>HOFANTRANO - Fitantanana Trano Hofaina</title>
-    <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#059669">
+    
+    <!-- PWA & Mobile Icons -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    
+    <!-- Colors & App meta -->
+    <meta name="theme-color" content="#059669" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="HOFANTRANO" />
+
+    <!-- SEO & Sharing -->
     <meta name="description" content="Fitaovana fitantanana trano hofaina, mpanofa, hofan-trano, fandoavam-bola ary reçus PDF ho an'i Madagasikara." />
     <meta property="og:title" content="HOFANTRANO - Fitantanana Trano Hofaina" />
     <meta property="og:description" content="Fitaovana fitantanana trano hofaina, mpanofa, hofan-trano, fandoavam-bola ary reçus PDF ho an'i Madagasikara." />
+    <meta property="og:image" content="/logo-512.png" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
   </head>
-  <body>
+  <body class="bg-slate-50 text-slate-900 select-none antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-      });
-
-      function showInstallPrompt() {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          deferredPrompt.userChoice.then((choiceResult) => {
-            if (choiceResult.outcome === 'accepted') {
-              console.log('User accepted the A2HS prompt');
-            }
-            deferredPrompt = null;
-          });
-        }
-      }
-    </script>
   </body>
 </html>
-

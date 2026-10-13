@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Bell, Menu, X, LogOut } from 'lucide-react';
+import { Bell, Menu, X, LogOut, Download, Shield, Smartphone } from 'lucide-react';
 import { UserProfile, AppNotification } from '../types';
 import { dbStore, getCurrentSession } from '../lib/firebase';
+import { usePWAInstall } from './usePWAInstall';
 
 interface NavbarProps {
   currentUser: UserProfile;
@@ -9,12 +10,22 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onLogout: () => void;
+  onOpenAdminPlatform: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentUser, onOpenAuthModal, activeTab, setActiveTab, onLogout }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  currentUser, 
+  onOpenAuthModal, 
+  activeTab, 
+  setActiveTab, 
+  onLogout,
+  onOpenAdminPlatform
+}) => {
   const [notifications, setNotifications] = useState<AppNotification[]>(dbStore.getNotifications());
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { isInstallable, isInstalled, install } = usePWAInstall();
 
   const session = getCurrentSession();
   const userNotifs = session.role === 'MPANOFA' 
@@ -32,6 +43,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentUser, onOpenAuthModal, ac
     });
     setNotifications(updated);
     dbStore.saveNotifications(updated);
+  };
+
+  const handleInstallClick = async () => {
+    if (isInstallable) {
+      await install();
+    } else {
+      // Trigger prompt / modal by finding the InstallPWA button
+      const pwaBtn = document.querySelector('[data-pwa-install-trigger]') as HTMLButtonElement;
+      if (pwaBtn) pwaBtn.click();
+    }
   };
 
   const menuItems = session.role === 'MPANOFA' ? [
@@ -62,15 +83,43 @@ export const Navbar: React.FC<NavbarProps> = ({ currentUser, onOpenAuthModal, ac
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-          <div>
-            <span className="text-xs uppercase tracking-wider font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-              Madagasikara
-            </span>
-            <h2 className="text-lg font-bold text-slate-900 mt-0.5 md:hidden">HOFANTRANO</h2>
+          
+          <div className="flex items-center gap-2">
+            <img src="/logo-192.png" alt="HOFANTRANO" className="w-8 h-8 rounded-lg shadow-sm md:hidden" />
+            <div>
+              <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                Madagasikara
+              </span>
+              <h2 className="text-base font-bold text-slate-900 leading-none mt-0.5 md:hidden">HOFANTRANO</h2>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        {/* Right Actions */}
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* PWA INSTALL BUTTON (MANDATORY IN SCREEN) */}
+          {!isInstalled && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 transition active:scale-95"
+              title="Installer l'application HOFANTRANO sur votre appareil"
+            >
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-bounce" />
+              <span>Installer</span>
+            </button>
+          )}
+
+          {/* Quick link to /admin */}
+          <button
+            onClick={onOpenAdminPlatform}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-semibold border border-slate-200 transition"
+            title="Admin Plateforme (/admin)"
+          >
+            <Shield className="w-3.5 h-3.5 text-emerald-600" />
+            <span>/admin</span>
+          </button>
+
+          {/* Notification Bell */}
           <div className="relative">
             <button
               onClick={() => setShowNotifDropdown(!showNotifDropdown)}
@@ -111,11 +160,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentUser, onOpenAuthModal, ac
             )}
           </div>
 
-          <div className="flex items-center space-x-3 pl-3 py-1.5 pr-4 border border-slate-200 rounded-full bg-slate-50">
-            <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shadow">
+          {/* User Profile Pill */}
+          <div className="flex items-center space-x-2 pl-2 sm:pl-3 py-1 sm:py-1.5 pr-2.5 sm:pr-3.5 border border-slate-200 rounded-full bg-slate-50">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-xs sm:text-sm shadow">
               {currentUser.fullName.charAt(0)}
             </div>
-            <div className="text-left hidden sm:block">
+            <div className="text-left hidden md:block">
               <p className="text-xs font-bold text-slate-900 leading-tight">{currentUser.fullName}</p>
               <p className="text-[10px] text-emerald-600 font-semibold leading-tight">
                 {currentUser.role === 'TOMPO_TRANO' ? 'Tompo-trano (Admin)' : 'Mpanofa'}
@@ -123,9 +173,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentUser, onOpenAuthModal, ac
             </div>
           </div>
 
+          {/* Logout */}
           <button
             onClick={onLogout}
-            className="flex items-center gap-1 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold shadow-xs transition"
+            className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold shadow-xs transition"
             title="Se déconnecter"
           >
             <LogOut className="w-4 h-4" />
@@ -150,6 +201,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentUser, onOpenAuthModal, ac
               {item.label}
             </button>
           ))}
+          <div className="pt-2 border-t border-slate-800">
+            <button
+              onClick={() => {
+                onOpenAdminPlatform();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-emerald-400 hover:bg-slate-800 flex items-center gap-2"
+            >
+              <Shield className="w-4 h-4" />
+              <span>Admin Plateforme (/admin)</span>
+            </button>
+          </div>
         </div>
       )}
     </header>

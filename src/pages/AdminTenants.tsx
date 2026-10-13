@@ -30,6 +30,7 @@ export const AdminTenants: React.FC = () => {
     e.preventDefault();
     const newTenant: Tenant = {
       id: `ten-${Date.now()}`,
+      ownerId: 'admin-1',
       fullName,
       phone,
       startDate,

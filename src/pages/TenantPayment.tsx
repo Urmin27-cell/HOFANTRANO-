@@ -36,12 +36,12 @@ export const TenantPayment: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentTenant || !currentProperty) {
-      alert('Tsy hita ny mombamomba ny trano misy anao.');
       return;
     }
 
     const newSub: PaymentSubmission = {
       id: `sub-${Date.now()}`,
+      ownerId: currentProperty.ownerId || currentTenant.ownerId || 'admin-1',
       tenantId: currentTenant.id,
       propertyId: currentProperty.id,
       amount: Number(amount),

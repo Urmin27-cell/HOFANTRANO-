@@ -34,6 +34,7 @@ export const AdminProperties: React.FC = () => {
     } else {
       const newProp: Property = {
         id: `prop-${Date.now()}`,
+        ownerId: 'admin-1',
         code,
         name,
         address,

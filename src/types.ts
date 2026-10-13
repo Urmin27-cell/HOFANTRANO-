@@ -1,5 +1,13 @@
 export type UserRole = 'TOMPO_TRANO' | 'MPANOFA' | 'ADMIN_PLATFORME';
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  createdAt: string;
+}
+
 export interface AdminSettings {
   id: string;
   adminName: string;
@@ -75,6 +83,7 @@ export interface Receipt {
   accountName: string;
   reference: string;
   createdAt: string;
+  landlordSignature?: string;
 }
 
 export interface AppNotification {
