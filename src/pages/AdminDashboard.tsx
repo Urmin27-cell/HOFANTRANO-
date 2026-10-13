@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Building, Users, Wallet, AlertTriangle, Bell, CheckCircle2, Clock, Sparkles } from 'lucide-react';
+import { Building, Users, Wallet, AlertTriangle, Bell, CheckCircle2, Clock, Sparkles, Smartphone, Timer } from 'lucide-react';
 import { Property, Tenant, PaymentSubmission } from '../types';
-import { dbStore, enableAppNotifications, isNotificationEnabled, showSystemNotification } from '../lib/firebase';
+import { dbStore, enableAppNotifications, isNotificationEnabled, showSystemNotification, scheduleBackgroundNotification } from '../lib/firebase';
 import { formatAr } from '../lib/formatters';
 
 export const AdminDashboard: React.FC = () => {
@@ -58,15 +58,40 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const [countdown, setCountdown] = useState<number | null>(null);
+
   const handleSendTestNotification = () => {
     dbStore.addNotification(
-      'HOFANTRANO Fitsapana',
+      'HOFANTRANO Fitsapana 🔔',
       'Fitsapana fampandrenesana: Miasa tsara 100% ny Push Notification anao!',
       adminProfile.id,
       'SUCCESS'
     );
     setNotifFeedback('Nalefa ny fampandrenesana fitsapana! Efa nirefotra ny feo sy ny fampahatsiahivana.');
     setTimeout(() => setNotifFeedback(null), 5000);
+  };
+
+  const handleSendDelayedBackgroundTest = () => {
+    setCountdown(5);
+    setNotifFeedback("Mivoaha amin'ny application izao (Tsindrio ny Accueil/Home amin'ny finday)! Hilatsaka avy eny ambony finday ny fampandrenesana afaka 5 segondra...");
+    scheduleBackgroundNotification(
+      'HOFANTRANO 🔔 (Fampandrenesana Finday)',
+      'Miasa tsara 100%! Milatsaka eny ambony amin\'ny findainao na dia any ivelan\'ny fampiharana aza ianao.',
+      5
+    );
+
+    let sec = 5;
+    const timer = setInterval(() => {
+      sec -= 1;
+      if (sec <= 0) {
+        clearInterval(timer);
+        setCountdown(null);
+        setNotifFeedback("Nalefa eny amin'ny bara fampandrenesan'ny finday (Notification Bar) ilay fampahatsiahivana!");
+        setTimeout(() => setNotifFeedback(null), 6000);
+      } else {
+        setCountdown(sec);
+      }
+    }, 1000);
   };
 
   return (
@@ -155,18 +180,41 @@ export const AdminDashboard: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="bg-white border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-xs">
+        <div className="bg-white border border-emerald-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-2.5 text-xs text-slate-700">
-            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping" />
-            <span className="font-bold text-emerald-900">Push Notifications: Mavitrika (Actif)</span>
-            <span className="text-slate-400 hidden sm:inline">— Vonona handray fampandrenesana ny findainao</span>
+            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping shrink-0" />
+            <div>
+              <span className="font-bold text-emerald-900">Push Notifications: Mavitrika (Actif)</span>
+              <p className="text-[11px] text-slate-500 mt-0.5">Vonona handray fampandrenesana mivantana eo amin'ny bara ambony amin'ny finday</p>
+            </div>
           </div>
-          <button
-            onClick={handleSendTestNotification}
-            className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 hover:underline px-2 py-1 rounded bg-emerald-50 border border-emerald-200"
-          >
-            Hitsapa (Tester)
-          </button>
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+            <button
+              onClick={handleSendTestNotification}
+              className="flex-1 md:flex-none text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 transition"
+              title="Hitsapa eto amin'ny efijery avy hatrany"
+            >
+              Hitsapa Eto (Tester)
+            </button>
+            <button
+              onClick={handleSendDelayedBackgroundTest}
+              disabled={countdown !== null}
+              className="flex-1 md:flex-none flex items-center justify-center gap-1.5 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-3.5 py-2 rounded-xl shadow-md shadow-emerald-900/20 transition"
+              title="Hitsapa ny fisehoana eny amin'ny finday rehefa mivoaka ny app ianao"
+            >
+              {countdown !== null ? (
+                <>
+                  <Timer className="w-3.5 h-3.5 animate-spin" />
+                  <span>Mivoaha amin'ny app ({countdown}s)...</span>
+                </>
+              ) : (
+                <>
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Fitsapana Ivelan'ny App (5s)</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       )}
 

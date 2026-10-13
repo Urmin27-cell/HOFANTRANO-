@@ -58,17 +58,13 @@ export const AdminVerification: React.FC = () => {
     setReceipts(updatedReceipts);
     dbStore.saveReceipts(updatedReceipts);
 
-    const notifs = dbStore.getNotifications();
-    notifs.unshift({
-      id: `notif-${Date.now()}`,
-      userId: tenant.id,
-      title: 'Voaray sy Nankatoavina ny Fandoavam-bola',
-      message: `Nankatoavin'ny Tompon-trano ny fandoavanao ho an'ny volana ${selectedSub.rentMonth} mitentina ${formatAr(selectedSub.amount)}. Azonao alaina ao amin'ny "Reçu du paiement" ny reçurao.`,
-      type: 'SUCCESS',
-      read: false,
-      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19)
-    });
-    dbStore.saveNotifications(notifs);
+    // Add notification for tenant with real push notification trigger
+    dbStore.addNotification(
+      'Voaray sy Nankatoavina ny Fandoavam-bola 🔔',
+      `Nankatoavin'ny Tompon-trano ny fandoavanao ho an'ny volana ${selectedSub.rentMonth} mitentina ${formatAr(selectedSub.amount)}. Azonao alaina ao amin'ny "Reçu du paiement" ny reçurao.`,
+      tenant.id,
+      'SUCCESS'
+    );
 
     generateReceiptPDF(newReceipt, tenant, property, account);
 

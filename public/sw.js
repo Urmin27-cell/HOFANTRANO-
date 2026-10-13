@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hofantrano-pwa-v2';
+const CACHE_NAME = 'hofantrano-pwa-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -69,7 +69,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cached and refresh in background
         fetch(request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
@@ -90,32 +89,73 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// BACKGROUND NOTIFICATION SCHEDULER
+// Triggers high-priority Android heads-up notification even after user leaves/minimizes app
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SCHEDULE_BACKGROUND_NOTIFICATION') {
+    const { title, body, delayMs, url } = event.data;
+    setTimeout(() => {
+      self.registration.showNotification(title || 'HOFANTRANO 🔔', {
+        body: body || 'Fampandrenesana vaovao ao amin\'ny findainao.',
+        icon: '/logo-192.png',
+        badge: '/logo-192.png',
+        vibrate: [300, 100, 400, 100, 400],
+        tag: 'hofantrano-bg-' + Date.now(),
+        renotify: true,
+        requireInteraction: true,
+        data: { url: url || '/' },
+        actions: [
+          { action: 'open', title: 'Sokafy ny App' }
+        ]
+      });
+    }, delayMs || 5000);
+  }
+});
+
 // PUSH NOTIFICATION HANDLER
 self.addEventListener('push', (event) => {
-  let title = 'HOFANTRANO';
-  let options = {
-    body: 'Misy fampahatsiahivana vaovao ao amin\'ny kaontinao.',
-    icon: '/logo-192.png',
-    badge: '/logo-192.png',
-    vibrate: [200, 100, 200],
-    data: { url: '/' }
-  };
+  let title = 'HOFANTRANO 🔔';
+  let bodyText = 'Misy fampahatsiahivana vaovao ao amin\'ny kaontinao.';
+  let targetUrl = '/';
 
   if (event.data) {
     try {
       const data = event.data.json();
+      if (data.notification) {
+        if (data.notification.title) title = data.notification.title;
+        if (data.notification.body) bodyText = data.notification.body;
+      }
+      if (data.data) {
+        if (data.data.title) title = data.data.title;
+        if (data.data.body) bodyText = data.data.body;
+        if (data.data.url) targetUrl = data.data.url;
+      }
       if (data.title) title = data.title;
-      if (data.body) options.body = data.body;
-      if (data.url) options.data.url = data.url;
+      if (data.body) bodyText = data.body;
+      if (data.url) targetUrl = data.url;
     } catch (e) {
-      options.body = event.data.text();
+      bodyText = event.data.text() || bodyText;
     }
   }
+
+  const options = {
+    body: bodyText,
+    icon: '/logo-192.png',
+    badge: '/logo-192.png',
+    vibrate: [300, 100, 400, 100, 400],
+    tag: 'hofantrano-' + Date.now(),
+    renotify: true,
+    requireInteraction: true,
+    data: { url: targetUrl },
+    actions: [
+      { action: 'open', title: 'Sokafy' }
+    ]
+  };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Notification click event
+// Notification click event (opens/focuses the app from phone notification shade)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const urlToOpen = (event.notification.data && event.notification.data.url) || '/';
@@ -123,7 +163,7 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url === urlToOpen && 'focus' in client) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
           return client.focus();
         }
       }

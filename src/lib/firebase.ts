@@ -124,7 +124,14 @@ export async function enableAppNotifications(userId?: string): Promise<{ success
         if (messaging) {
           const { getToken } = await import('firebase/messaging');
           try {
-            token = await getToken(messaging, { vapidKey: VAPID_KEY });
+            let swReg: ServiceWorkerRegistration | undefined;
+            if ('serviceWorker' in navigator) {
+              swReg = await navigator.serviceWorker.ready;
+            }
+            token = await getToken(messaging, { 
+              vapidKey: VAPID_KEY,
+              serviceWorkerRegistration: swReg
+            });
             console.log('FCM Token voaray:', token);
             if (userId && token) {
               localStorage.setItem(`hofantrano_fcm_token_${userId}`, token);
@@ -141,8 +148,8 @@ export async function enableAppNotifications(userId?: string): Promise<{ success
 
   // Fire welcome and confirmation notification
   await showSystemNotification(
-    'HOFANTRANO - Mavitrika',
-    'Mandeha soa aman-tsara ny fampahafantarana (Push Notifications)!'
+    'HOFANTRANO - Mavitrika 🔔',
+    'Mandeha soa aman-tsara ny fampahafantarana (Push Notifications) amin\'ny findainao!'
   );
 
   return {
@@ -191,7 +198,7 @@ export async function showSystemNotification(title: string, body: string, url: s
     }
 
     if (Notification.permission === 'granted') {
-      // 4a. Try Service Worker showNotification (Best for Android & PWA background bar)
+      // 4a. Try Service Worker showNotification (Best for Android & PWA background status bar)
       if ('serviceWorker' in navigator) {
         try {
           const swReadyPromise = navigator.serviceWorker.ready;
@@ -205,8 +212,13 @@ export async function showSystemNotification(title: string, body: string, url: s
               icon: '/logo-192.png',
               badge: '/logo-192.png',
               data: { url },
-              vibrate: [200, 100, 200],
-              tag: 'hofantrano-' + Date.now()
+              vibrate: [300, 100, 400, 100, 400],
+              tag: 'hofantrano-' + Date.now(),
+              renotify: true,
+              requireInteraction: true,
+              actions: [
+                { action: 'open', title: 'Sokafy' }
+              ]
             } as any);
             return;
           }
@@ -219,14 +231,41 @@ export async function showSystemNotification(title: string, body: string, url: s
       try {
         new Notification(title, {
           body,
-          icon: '/logo-192.png'
-        });
+          icon: '/logo-192.png',
+          requireInteraction: true
+        } as any);
         return;
       } catch (e) {}
     }
   }
 
   console.log('[HOFANTRANO Notification Sent]', title, body);
+}
+
+// Background notification schedule: allows testing when user exits or locks the phone
+export async function scheduleBackgroundNotification(title: string, body: string, delaySeconds: number = 5, url: string = '/') {
+  // Post message to Service Worker so it runs even if tab is in background/throttled
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (reg.active) {
+        reg.active.postMessage({
+          type: 'SCHEDULE_BACKGROUND_NOTIFICATION',
+          title,
+          body,
+          delayMs: delaySeconds * 1000,
+          url
+        });
+      }
+    } catch (e) {
+      console.warn('SW schedule message note:', e);
+    }
+  }
+
+  // Backup timer
+  setTimeout(() => {
+    showSystemNotification(title, body, url);
+  }, delaySeconds * 1000);
 }
 
 // Default Platform Account (for 2 500 Ar / month subscription)

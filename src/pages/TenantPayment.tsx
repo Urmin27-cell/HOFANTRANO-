@@ -58,18 +58,13 @@ export const TenantPayment: React.FC = () => {
     setSubmissions(updated);
     dbStore.saveSubmissions(updated);
 
-    // Add notification for admin
-    const notifs = dbStore.getNotifications();
-    notifs.unshift({
-      id: `notif-${Date.now()}`,
-      userId: 'ADMIN',
-      title: 'Fandoavam-bola Vaovao avy amin\'ny Mpanofa',
-      message: `Nandefa fandoavana ho an'ny volana ${rentMonth} mitentina ${formatAr(amount)} i ${currentTenant.fullName}.`,
-      type: 'INFO',
-      read: false,
-      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 19)
-    });
-    dbStore.saveNotifications(notifs);
+    // Add notification for admin with real push trigger
+    dbStore.addNotification(
+      'Fandoavam-bola Vaovao avy amin\'ny Mpanofa 🔔',
+      `Nandefa fandoavana ho an'ny volana ${rentMonth} mitentina ${formatAr(amount)} i ${currentTenant.fullName}.`,
+      'admin-1',
+      'INFO'
+    );
 
     setSuccess(true);
     setTimeout(() => setSuccess(false), 4000);

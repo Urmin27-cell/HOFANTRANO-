@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, CheckCircle2, Info, Sparkles, Volume2 } from 'lucide-react';
+import { Bell, CheckCircle2, Info, Sparkles, Volume2, Smartphone, Timer } from 'lucide-react';
 import { AppNotification } from '../types';
 import { 
   dbStore, 
   getCurrentSession, 
   isNotificationEnabled, 
   enableAppNotifications,
-  showSystemNotification 
+  showSystemNotification,
+  scheduleBackgroundNotification
 } from '../lib/firebase';
 
 export const SharedNotifications: React.FC = () => {
@@ -53,6 +54,31 @@ export const SharedNotifications: React.FC = () => {
     setTimeout(() => setTestSuccessMessage(null), 4000);
   };
 
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  const handleSendDelayedBackgroundTest = () => {
+    setCountdown(5);
+    setTestSuccessMessage("Mivoaha amin'ny application izao (Tsindrio ny Accueil/Home amin'ny finday)! Hilatsaka avy eny ambony finday ny fampandrenesana afaka 5 segondra...");
+    scheduleBackgroundNotification(
+      'HOFANTRANO 🔔 (Fampandrenesana Finday)',
+      'Miasa tsara 100%! Milatsaka eny ambony amin\'ny findainao na dia any ivelan\'ny fampiharana aza ianao.',
+      5
+    );
+
+    let sec = 5;
+    const timer = setInterval(() => {
+      sec -= 1;
+      if (sec <= 0) {
+        clearInterval(timer);
+        setCountdown(null);
+        setTestSuccessMessage("Nalefa eny amin'ny bara fampandrenesan'ny finday (Notification Bar) ilay fampahatsiahivana!");
+        setTimeout(() => setTestSuccessMessage(null), 6000);
+      } else {
+        setCountdown(sec);
+      }
+    }, 1000);
+  };
+
   const handleActivatePush = async () => {
     const res = await enableAppNotifications(session.userId);
     setIsPushActive(true);
@@ -69,7 +95,7 @@ export const SharedNotifications: React.FC = () => {
           <p className="text-sm text-slate-500">Ireo fampahatsiahivana, fandoavam-bola sy hafatra rehetra.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {list.some(n => !n.read) && (
             <button
               onClick={markAllRead}
@@ -81,10 +107,30 @@ export const SharedNotifications: React.FC = () => {
 
           <button
             onClick={handleTestNotification}
-            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 transition"
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition"
+            title="Fitsapana eo noho eo amin'ny efijery"
           >
-            <Volume2 className="w-4 h-4" />
-            <span>Hitsapa (Tester)</span>
+            <Volume2 className="w-4 h-4 text-emerald-600" />
+            <span>Hitsapa Eto</span>
+          </button>
+
+          <button
+            onClick={handleSendDelayedBackgroundTest}
+            disabled={countdown !== null}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 transition"
+            title="Fitsapana hilatsaka avy eny ambony amin'ny finday rehefa mivoaka ny app"
+          >
+            {countdown !== null ? (
+              <>
+                <Timer className="w-3.5 h-3.5 animate-spin" />
+                <span>Mivoaha amin'ny app ({countdown}s)...</span>
+              </>
+            ) : (
+              <>
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Fitsapana Ivelan'ny App (5s)</span>
+              </>
+            )}
           </button>
         </div>
       </div>

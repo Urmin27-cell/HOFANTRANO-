@@ -6,7 +6,7 @@ createRoot(document.getElementById('root')!).render(<App />);
 
 // Register Service Worker for PWA with scope '/'
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
+  const registerSW = () => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then((reg) => {
@@ -15,5 +15,11 @@ if ('serviceWorker' in navigator) {
       .catch((err) => {
         console.warn('HOFANTRANO ServiceWorker error:', err);
       });
-  });
+  };
+
+  if (document.readyState === 'complete') {
+    registerSW();
+  } else {
+    window.addEventListener('load', registerSW);
+  }
 }
