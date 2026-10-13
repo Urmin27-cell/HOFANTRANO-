@@ -11,20 +11,20 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 const INITIAL_ADMIN: AdminSettings = {
   id: 'admin-1',
-  adminName: 'Tompon-trano',
-  pinCode: '1234',
+  adminName: '',
+  pinCode: '',
   currency: 'Ar'
 };
 
 const INITIAL_ACCOUNTS: PaymentAccount[] = [
-  { id: 'acc-1', accountNumber: '034 12 345 67', accountName: 'Jean Ramanantsoa', bankOrProvider: 'MVola' },
-  { id: 'acc-2', accountNumber: '033 98 765 43', accountName: 'Jean Ramanantsoa', bankOrProvider: 'Orange Money' },
-  { id: 'acc-3', accountNumber: '00005 00001 123456789', accountName: 'Jean Ramanantsoa', bankOrProvider: 'BNI Madagascar' }
+  { id: 'acc-1', accountNumber: '034 12 345 67', accountName: 'Tompon-trano', bankOrProvider: 'MVola' },
+  { id: 'acc-2', accountNumber: '033 98 765 43', accountName: 'Tompon-trano', bankOrProvider: 'Orange Money' },
+  { id: 'acc-3', accountNumber: '00005 00001 123456789', accountName: 'Tompon-trano', bankOrProvider: 'BNI Madagascar' }
 ];
 
 function getStoredData<T>(key: string, initial: T): T {
   try {
-    const item = localStorage.getItem(`hofantrano_v3_${key}`);
+    const item = localStorage.getItem(`hofantrano_v4_${key}`);
     return item ? JSON.parse(item) : initial;
   } catch {
     return initial;
@@ -33,7 +33,7 @@ function getStoredData<T>(key: string, initial: T): T {
 
 function setStoredData<T>(key: string, data: T): void {
   try {
-    localStorage.setItem(`hofantrano_v3_${key}`, JSON.stringify(data));
+    localStorage.setItem(`hofantrano_v4_${key}`, JSON.stringify(data));
   } catch (e) {
     console.error('Error saving to localStorage', e);
   }
@@ -61,13 +61,11 @@ export const setCurrentSession = (session: AuthSession) => {
 };
 
 export const dbStore = {
-  getAdmin: (): AdminSettings => getStoredData('admin', INITIAL_ADMIN),
-  saveAdmin: (admin: AdminSettings) => setStoredData('admin', admin),
-  saveAdminPin: (pin: string) => {
-    const admin = getStoredData('admin', INITIAL_ADMIN);
-    admin.pinCode = pin;
-    setStoredData('admin', admin);
-  },
+  getAdmin: (): AdminSettings & { phone?: string; email?: string; isRegistered?: boolean } => 
+    getStoredData('admin_profile', { ...INITIAL_ADMIN, isRegistered: false }),
+  
+  saveAdmin: (admin: AdminSettings & { phone?: string; email?: string; isRegistered?: boolean }) => 
+    setStoredData('admin_profile', admin),
 
   getAccounts: (): PaymentAccount[] => getStoredData('accounts', INITIAL_ACCOUNTS),
   saveAccounts: (accounts: PaymentAccount[]) => setStoredData('accounts', accounts),
