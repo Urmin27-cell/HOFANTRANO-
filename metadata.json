@@ -1,0 +1,6 @@
+{
+  "name": "HOFANTRANO",
+  "description": "Fitaovana fitantanana trano hofaina, mpanofa, hofan-trano, fandoavam-bola ary reçus PDF ho an'i Madagasikara",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

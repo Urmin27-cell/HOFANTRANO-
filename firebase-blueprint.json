@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "Tompo-trano / Admin profile with PIN code",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "pinCode": { "type": "string", "maxLength": 10 },
+        "email": { "type": "string", "format": "email" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "fullName", "pinCode"]
+    },
+    "Property": {
+      "title": "Property",
+      "description": "Rental property",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "code": { "type": "string", "maxLength": 50 },
+        "name": { "type": "string", "maxLength": 100 },
+        "address": { "type": "string", "maxLength": 200 },
+        "zone": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string" },
+        "rooms": { "type": "integer" },
+        "monthlyRent": { "type": "number" },
+        "caution": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "ownerId", "code", "name", "monthlyRent"]
+    },
+    "Tenant": {
+      "title": "Tenant",
+      "description": "Tenant profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "format": "email" },
+        "monthlyRent": { "type": "number" },
+        "dueDay": { "type": "integer" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "ownerId", "propertyId", "fullName", "phone"]
+    },
+    "RentInvoice": {
+      "title": "RentInvoice",
+      "description": "Monthly rent invoice",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "month": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "ownerId", "tenantId", "invoiceNumber", "totalAmount"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "amount": { "type": "number" },
+        "paymentDate": { "type": "string" },
+        "paymentMethod": { "type": "string" }
+      },
+      "required": ["id", "ownerId", "tenantId", "amount", "paymentDate"]
+    },
+    "Receipt": {
+      "title": "Receipt",
+      "description": "Payment receipt",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "receiptNumber": { "type": "string" },
+        "amountPaid": { "type": "number" }
+      },
+      "required": ["id", "ownerId", "receiptNumber", "amountPaid"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Admin accounts"
+    },
+    "/properties/{propertyId}": {
+      "schema": "Property",
+      "description": "Properties"
+    },
+    "/tenants/{tenantId}": {
+      "schema": "Tenant",
+      "description": "Tenants"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "RentInvoice",
+      "description": "Invoices"
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Payments"
+    },
+    "/receipts/{receiptId}": {
+      "schema": "Receipt",
+      "description": "Receipts"
+    }
+  }
+}
