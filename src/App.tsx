@@ -21,6 +21,7 @@ import { SharedNotifications } from './pages/SharedNotifications';
 import { AdminPlatform } from './pages/AdminPlatform';
 import { InstallPWA } from './components/InstallPWA';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { NotificationToast } from './components/NotificationToast';
 import { getCurrentSession, setCurrentSession, AuthSession, dbStore, requestNotificationPermission } from './lib/firebase';
 
 export default function App() {
@@ -186,6 +187,7 @@ export default function App() {
       />
       
       <OfflineIndicator />
+      <NotificationToast />
       <InstallPWA />
     </div>
   );

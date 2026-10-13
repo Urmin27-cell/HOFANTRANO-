@@ -43,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const { isInstallable, isInstalled, install } = usePWAInstall();
+  const { isInstallable, isInstalled, install, markAsInstalled } = usePWAInstall();
 
   const session = getCurrentSession();
   const userNotifs = session.role === 'MPANOFA' 
@@ -65,10 +65,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleInstallClick = async () => {
     if (isInstallable) {
-      await install();
+      const accepted = await install();
+      if (!accepted) {
+        window.dispatchEvent(new CustomEvent('open_pwa_install_guide'));
+      }
     } else {
-      const pwaBtn = document.querySelector('[data-pwa-install-trigger]') as HTMLButtonElement;
-      if (pwaBtn) pwaBtn.click();
+      window.dispatchEvent(new CustomEvent('open_pwa_install_guide'));
     }
   };
 
@@ -114,16 +116,25 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Actions */}
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* PWA INSTALL BUTTON */}
+          {/* PWA INSTALL BUTTON - DISAPPEARS COMPLETELY WHEN INSTALLED */}
           {!isInstalled && (
-            <button
-              onClick={handleInstallClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-900/20 transition active:scale-95"
-              title="Installer l'application HOFANTRANO"
-            >
-              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-bounce" />
-              <span>Installer</span>
-            </button>
+            <div className="flex items-center bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl shadow-md shadow-emerald-900/20 overflow-hidden">
+              <button
+                onClick={handleInstallClick}
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 hover:bg-emerald-700/50 text-white text-xs font-bold transition active:scale-95"
+                title="Installer l'application HOFANTRANO"
+              >
+                <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-bounce" />
+                <span>Installer</span>
+              </button>
+              <button
+                onClick={() => markAsInstalled()}
+                className="px-2 py-1.5 sm:py-2 text-white/70 hover:text-white hover:bg-white/20 transition border-l border-white/20"
+                title="Efa nanao installation (Esory ity)"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
 
           {/* Notification Bell */}
@@ -134,7 +145,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
                   {unreadCount}
                 </span>
               )}

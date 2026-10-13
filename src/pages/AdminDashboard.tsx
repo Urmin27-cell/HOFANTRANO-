@@ -40,25 +40,33 @@ export const AdminDashboard: React.FC = () => {
     try {
       const res = await enableAppNotifications(adminProfile.id);
       setNotifGranted(true);
+      dbStore.addNotification(
+        'Fampahatsiahivana Voahetsika',
+        res.message || 'Mandeha soa aman-tsara ny Push Notifications!',
+        adminProfile.id,
+        'SUCCESS'
+      );
       setNotifFeedback(res.message || 'Voahetsika soa aman-tsara ny Push Notifications!');
-      setTimeout(() => setNotifFeedback(null), 4000);
+      setTimeout(() => setNotifFeedback(null), 5000);
     } catch (err) {
       localStorage.setItem('hofantrano_push_enabled', 'true');
       setNotifGranted(true);
       setNotifFeedback('Voahetsika soa aman-tsara ny fampahafantarana!');
-      setTimeout(() => setNotifFeedback(null), 3000);
+      setTimeout(() => setNotifFeedback(null), 4000);
     } finally {
       setIsActivatingNotif(false);
     }
   };
 
   const handleSendTestNotification = () => {
-    showSystemNotification(
+    dbStore.addNotification(
       'HOFANTRANO Fitsapana',
-      'Fitsapana fampandrenesana: Miasa tsara 100% ny Push Notification anao!'
+      'Fitsapana fampandrenesana: Miasa tsara 100% ny Push Notification anao!',
+      adminProfile.id,
+      'SUCCESS'
     );
-    setNotifFeedback('Nalefa ny fampandrenesana fitsapana!');
-    setTimeout(() => setNotifFeedback(null), 3000);
+    setNotifFeedback('Nalefa ny fampandrenesana fitsapana! Efa nirefotra ny feo sy ny fampahatsiahivana.');
+    setTimeout(() => setNotifFeedback(null), 5000);
   };
 
   return (

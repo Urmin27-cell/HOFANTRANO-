@@ -33,6 +33,44 @@ export const db = dbInstance;
 // VAPID Public Key for Web Push Notifications
 export const VAPID_KEY = 'BCY15_y12DL2yNd7PUsyyF2tRc1KLaL_2-bCIYo7PtikbubYW407Zal4DA6WnREpBPCide_hgrvW0NvZ04KoAlY';
 
+// Audio Chime Synthesizer using Web Audio API (Zero download dependencies, 100% reliable)
+export function playNotificationSound() {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const now = ctx.currentTime;
+
+    // Pleasant 2-note chime (D5: 587.3Hz -> A5: 880Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(587.33, now);
+    gain1.gain.setValueAtTime(0, now);
+    gain1.gain.linearRampToValueAtTime(0.25, now + 0.04);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.35);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880.0, now + 0.12);
+    gain2.gain.setValueAtTime(0, now + 0.12);
+    gain2.gain.linearRampToValueAtTime(0.3, now + 0.18);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.6);
+  } catch (e) {
+    console.warn('Audio chime notice:', e);
+  }
+}
+
 // Safe Messaging Initializer
 let messagingInstance: any = null;
 export async function getSafeMessaging() {
@@ -62,21 +100,26 @@ export function isNotificationEnabled(): boolean {
 }
 
 // Comprehensive activation with guaranteed action & fallback
-export async function enableAppNotifications(userId?: string): Promise<{ success: boolean; token?: string | null; message: string }> {
+export async function enableAppNotifications(userId?: string): Promise<{ success: boolean; token?: string | null; message: string; permission: string }> {
+  let permissionStatus = 'default';
+
   if (typeof window !== 'undefined') {
     localStorage.setItem('hofantrano_push_enabled', 'true');
   }
+
+  // Play immediate confirmation chime
+  playNotificationSound();
 
   let token: string | null = null;
 
   if (typeof window !== 'undefined' && 'Notification' in window) {
     try {
-      let permission = Notification.permission;
-      if (permission !== 'granted') {
-        permission = await Notification.requestPermission();
+      permissionStatus = Notification.permission;
+      if (permissionStatus !== 'granted') {
+        permissionStatus = await Notification.requestPermission();
       }
 
-      if (permission === 'granted') {
+      if (permissionStatus === 'granted') {
         const messaging = await getSafeMessaging();
         if (messaging) {
           const { getToken } = await import('firebase/messaging');
@@ -92,12 +135,12 @@ export async function enableAppNotifications(userId?: string): Promise<{ success
         }
       }
     } catch (err) {
-      console.warn('Notification permission request bypassed:', err);
+      console.warn('Notification permission request notice:', err);
     }
   }
 
-  // Welcome test notification
-  showSystemNotification(
+  // Fire welcome and confirmation notification
+  await showSystemNotification(
     'HOFANTRANO - Mavitrika',
     'Mandeha soa aman-tsara ny fampahafantarana (Push Notifications)!'
   );
@@ -105,7 +148,10 @@ export async function enableAppNotifications(userId?: string): Promise<{ success
   return {
     success: true,
     token,
-    message: 'Voahetsika soa aman-tsara ny fampandrenesana!'
+    permission: permissionStatus,
+    message: permissionStatus === 'granted' 
+      ? 'Voahetsika soa aman-tsara ny Push Notifications amin\'ny findainao!' 
+      : 'Voahetsika ao amin\'ny fampiharana ny fampandrenesana!'
   };
 }
 
@@ -115,41 +161,72 @@ export async function requestNotificationPermission(userId?: string): Promise<st
   return res.token || 'granted';
 }
 
-// Helper to trigger a system push / device notification in the OS notification bar
+// Helper to trigger a system push / device notification in the OS notification bar + In-App popup
 export async function showSystemNotification(title: string, body: string, url: string = '/') {
   if (typeof window === 'undefined') return;
 
-  // 1. Try Service Worker showNotification (Native phone notification bar)
-  if ('serviceWorker' in navigator) {
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      if (reg && reg.showNotification) {
-        await reg.showNotification(title, {
-          body,
-          icon: '/logo-192.png',
-          badge: '/logo-192.png',
-          data: { url },
-          vibrate: [200, 100, 200]
-        } as any);
-        return;
+  // 1. Play crystal clear notification sound chime
+  playNotificationSound();
+
+  // 2. Dispatch custom in-app visual notification event (instant visual toast on screen)
+  window.dispatchEvent(new CustomEvent('hofantrano_inapp_notification', {
+    detail: { 
+      title, 
+      body, 
+      url, 
+      timestamp: new Date().toISOString() 
+    }
+  }));
+
+  // 3. Dispatch general notification list update event
+  window.dispatchEvent(new CustomEvent('hofantrano_notifications_updated'));
+
+  // 4. Try browser Notification / Service Worker push
+  if (typeof Notification !== 'undefined') {
+    // If permission has not been asked, request it in background
+    if (Notification.permission === 'default') {
+      try {
+        await Notification.requestPermission();
+      } catch (e) {}
+    }
+
+    if (Notification.permission === 'granted') {
+      // 4a. Try Service Worker showNotification (Best for Android & PWA background bar)
+      if ('serviceWorker' in navigator) {
+        try {
+          const swReadyPromise = navigator.serviceWorker.ready;
+          const timeoutPromise = new Promise<ServiceWorkerRegistration | null>((resolve) => 
+            setTimeout(() => resolve(null), 1200)
+          );
+          const reg = await Promise.race([swReadyPromise, timeoutPromise]);
+          if (reg && reg.showNotification) {
+            await reg.showNotification(title, {
+              body,
+              icon: '/logo-192.png',
+              badge: '/logo-192.png',
+              data: { url },
+              vibrate: [200, 100, 200],
+              tag: 'hofantrano-' + Date.now()
+            } as any);
+            return;
+          }
+        } catch (e) {
+          console.warn('SW notification fallback:', e);
+        }
       }
-    } catch (e) {
-      console.warn('SW notification fallback:', e);
+
+      // 4b. Try window Notification API (Desktop / Browsers where window.Notification works)
+      try {
+        new Notification(title, {
+          body,
+          icon: '/logo-192.png'
+        });
+        return;
+      } catch (e) {}
     }
   }
 
-  // 2. Try window Notification API
-  try {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        body,
-        icon: '/logo-192.png'
-      });
-      return;
-    }
-  } catch (e) {}
-
-  console.log('[HOFANTRANO Notification]', title, body);
+  console.log('[HOFANTRANO Notification Sent]', title, body);
 }
 
 // Default Platform Account (for 2 500 Ar / month subscription)
