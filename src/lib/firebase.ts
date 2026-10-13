@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { 
   AdminSettings, PaymentAccount, Property, Tenant, 
@@ -8,6 +8,15 @@ import {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Enable offline persistence
+enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+        console.warn('Persistence failed: Multiple tabs open.');
+    } else if (err.code === 'unimplemented') {
+        console.warn('Persistence failed: Browser not supported.');
+    }
+});
 
 const INITIAL_ADMIN: AdminSettings = {
   id: 'admin-1',
@@ -66,6 +75,11 @@ export const dbStore = {
   
   saveAdmin: (admin: AdminSettings & { phone?: string; email?: string; isRegistered?: boolean }) => 
     setStoredData('admin_profile', admin),
+  saveAdminPin: (pin: string) => {
+    const admin = getStoredData('admin_profile', { ...INITIAL_ADMIN, isRegistered: false });
+    admin.pinCode = pin;
+    setStoredData('admin_profile', admin);
+  },
 
   getAccounts: (): PaymentAccount[] => getStoredData('accounts', INITIAL_ACCOUNTS),
   saveAccounts: (accounts: PaymentAccount[]) => setStoredData('accounts', accounts),
