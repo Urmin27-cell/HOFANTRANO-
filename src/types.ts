@@ -1,4 +1,4 @@
-export type UserRole = 'TOMPO_TRANO' | 'MPANOFA';
+export type UserRole = 'TOMPO_TRANO' | 'MPANOFA' | 'ADMIN_PLATFORME';
 
 export interface AdminSettings {
   id: string;
@@ -16,6 +16,7 @@ export interface PaymentAccount {
 
 export interface Property {
   id: string;
+  ownerId: string;
   code: string;
   name: string;
   address: string;
@@ -27,27 +28,37 @@ export interface Property {
 
 export interface Tenant {
   id: string;
+  ownerId: string;
   fullName: string;
   phone: string;
-  startDate: string; // e.g. "2026-10-13"
+  startDate: string;
   propertyId: string;
   monthlyRent: number;
   pinCode: string;
   createdAt: string;
+  status: 'MIVANTAKA' | 'NIALA';
+}
+
+export interface Subscription {
+  id: string;
+  ownerId: string;
+  startDate: string;
+  endDate: string;
+  status: 'FREE_TRIAL' | 'ACTIVE' | 'EXPIRED';
 }
 
 export interface PaymentSubmission {
   id: string;
+  ownerId: string;
   tenantId: string;
   propertyId: string;
   amount: number;
   accountId: string;
   paymentDate: string;
   reference: string;
-  rentMonth: string; // e.g. "Oktobra 2026" or "Cycle 1"
+  rentMonth: string;
   proofImageUrl?: string;
   status: 'MIANDRY' | 'VOALOA';
-  landlordSignature?: string;
   createdAt: string;
 }
 
@@ -60,16 +71,15 @@ export interface Receipt {
   propertyId: string;
   amountPaid: number;
   amountInWords: string;
-  rentMonth: string; // Specified rent month
+  rentMonth: string;
   accountName: string;
   reference: string;
-  landlordSignature: string;
   createdAt: string;
 }
 
 export interface AppNotification {
   id: string;
-  userId: string; // 'ADMIN' or tenantId
+  userId: string;
   title: string;
   message: string;
   type: 'INFO' | 'SUCCESS' | 'WARNING';
