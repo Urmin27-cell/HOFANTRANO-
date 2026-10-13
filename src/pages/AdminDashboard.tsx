@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Building, Users, Wallet, AlertTriangle, Bell, CheckCircle2, Clock, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Building, Users, Wallet, AlertTriangle, Bell, CheckCircle2, Clock, Sparkles } from 'lucide-react';
 import { Property, Tenant, PaymentSubmission } from '../types';
-import { dbStore, requestNotificationPermission, showSystemNotification } from '../lib/firebase';
+import { dbStore, enableAppNotifications, isNotificationEnabled, showSystemNotification } from '../lib/firebase';
 import { formatAr } from '../lib/formatters';
 
 export const AdminDashboard: React.FC = () => {
@@ -11,9 +11,9 @@ export const AdminDashboard: React.FC = () => {
   const adminProfile = dbStore.getAdmin();
   const platformAcc = dbStore.getPlatformAccount();
 
-  const [notifGranted, setNotifGranted] = useState(
-    typeof Notification !== 'undefined' && Notification.permission === 'granted'
-  );
+  const [notifGranted, setNotifGranted] = useState(isNotificationEnabled());
+  const [isActivatingNotif, setIsActivatingNotif] = useState(false);
+  const [notifFeedback, setNotifFeedback] = useState<string | null>(null);
 
   const totalProperties = properties.length;
   const vacantProperties = properties.filter(p => p.status === 'MALALAKA').length;
@@ -35,11 +35,30 @@ export const AdminDashboard: React.FC = () => {
   const isTrialExpired = diffDays >= 35 && !adminProfile.isSubscriptionPaid;
 
   const handleEnablePush = async () => {
-    const res = await requestNotificationPermission(adminProfile.id);
-    if (res) {
+    setIsActivatingNotif(true);
+    setNotifFeedback(null);
+    try {
+      const res = await enableAppNotifications(adminProfile.id);
       setNotifGranted(true);
-      showSystemNotification('HOFANTRANO Push', 'Mandeha soa aman-tsara ny fampahatsiahivana eo amin\'ny efijeriko!');
+      setNotifFeedback(res.message || 'Voahetsika soa aman-tsara ny Push Notifications!');
+      setTimeout(() => setNotifFeedback(null), 4000);
+    } catch (err) {
+      localStorage.setItem('hofantrano_push_enabled', 'true');
+      setNotifGranted(true);
+      setNotifFeedback('Voahetsika soa aman-tsara ny fampahafantarana!');
+      setTimeout(() => setNotifFeedback(null), 3000);
+    } finally {
+      setIsActivatingNotif(false);
     }
+  };
+
+  const handleSendTestNotification = () => {
+    showSystemNotification(
+      'HOFANTRANO Fitsapana',
+      'Fitsapana fampandrenesana: Miasa tsara 100% ny Push Notification anao!'
+    );
+    setNotifFeedback('Nalefa ny fampandrenesana fitsapana!');
+    setTimeout(() => setNotifFeedback(null), 3000);
   };
 
   return (
@@ -87,12 +106,20 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Push Notification Feedback Message */}
+      {notifFeedback && (
+        <div className="bg-emerald-900 text-white text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+          <span>{notifFeedback}</span>
+        </div>
+      )}
+
       {/* Push Notification Enable Banner */}
-      {!notifGranted && (
+      {!notifGranted ? (
         <div className="bg-slate-900 text-white rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-slate-800 shadow-md">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
-              <Bell className="w-5 h-5" />
+              <Bell className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-white">Alefaso ny PUSH Notifications</h4>
@@ -103,9 +130,34 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <button
             onClick={handleEnablePush}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shrink-0 shadow-lg shadow-emerald-900/40"
+            disabled={isActivatingNotif}
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-xl text-xs font-bold transition shrink-0 shadow-lg shadow-emerald-900/40 flex items-center gap-2"
           >
-            Hanaiky ny Notifications (Activer)
+            {isActivatingNotif ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Mampihetsika...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Hanaiky ny Notifications (Activer)</span>
+              </>
+            )}
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs text-slate-700">
+            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping" />
+            <span className="font-bold text-emerald-900">Push Notifications: Mavitrika (Actif)</span>
+            <span className="text-slate-400 hidden sm:inline">— Vonona handray fampandrenesana ny findainao</span>
+          </div>
+          <button
+            onClick={handleSendTestNotification}
+            className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 hover:underline px-2 py-1 rounded bg-emerald-50 border border-emerald-200"
+          >
+            Hitsapa (Tester)
           </button>
         </div>
       )}

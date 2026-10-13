@@ -7,16 +7,25 @@ interface BeforeInstallPromptEvent extends Event {
 
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-
-  useEffect(() => {
-    // Detect standalone mode (already installed)
+  
+  // Check if previously installed or running in standalone mode
+  const checkIsInstalled = () => {
+    if (typeof window === 'undefined') return false;
+    const stored = localStorage.getItem('hofantrano_pwa_installed') === 'true';
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       document.referrer.includes('android-app://');
-    setIsInstalled(isStandalone);
+    return stored || isStandalone;
+  };
+
+  const [isInstalled, setIsInstalled] = useState(checkIsInstalled);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    // Re-verify standalone / installed status
+    const installed = checkIsInstalled();
+    setIsInstalled(installed);
 
     // Detect iOS devices
     const userAgent = window.navigator.userAgent.toLowerCase();
@@ -29,6 +38,7 @@ export function usePWAInstall() {
     };
 
     const handleAppInstalled = () => {
+      localStorage.setItem('hofantrano_pwa_installed', 'true');
       setIsInstalled(true);
       setDeferredPrompt(null);
     };
@@ -48,6 +58,7 @@ export function usePWAInstall() {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
+        localStorage.setItem('hofantrano_pwa_installed', 'true');
         setIsInstalled(true);
         setDeferredPrompt(null);
         return true;
@@ -58,11 +69,18 @@ export function usePWAInstall() {
     return false;
   };
 
+  const markAsInstalled = () => {
+    localStorage.setItem('hofantrano_pwa_installed', 'true');
+    setIsInstalled(true);
+    setDeferredPrompt(null);
+  };
+
   return {
     isInstallable: !!deferredPrompt,
     isInstalled,
     isIOS,
     install,
+    markAsInstalled,
     deferredPrompt
   };
 }

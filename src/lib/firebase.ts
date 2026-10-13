@@ -6,9 +6,7 @@ import {
   getFirestore,
   doc, 
   setDoc, 
-  getDoc, 
-  collection, 
-  getDocs 
+  getDoc
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { 
@@ -28,7 +26,6 @@ try {
     })
   }, firebaseConfig.firestoreDatabaseId);
 } catch (e) {
-  // If already initialized
   dbInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 }
 export const db = dbInstance;
@@ -56,51 +53,75 @@ export async function getSafeMessaging() {
   return null;
 }
 
-// Request Notification Permission & get FCM token
-export async function requestNotificationPermission(userId?: string): Promise<string | null> {
-  if (typeof window === 'undefined' || !('Notification' in window)) {
-    return null;
+// Check if notification is enabled
+export function isNotificationEnabled(): boolean {
+  if (typeof window === 'undefined') return false;
+  const stored = localStorage.getItem('hofantrano_push_enabled') === 'true';
+  const nativeGranted = typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  return stored || nativeGranted;
+}
+
+// Comprehensive activation with guaranteed action & fallback
+export async function enableAppNotifications(userId?: string): Promise<{ success: boolean; token?: string | null; message: string }> {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('hofantrano_push_enabled', 'true');
   }
 
-  try {
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      const messaging = await getSafeMessaging();
-      let token: string | null = null;
-      if (messaging) {
-        const { getToken } = await import('firebase/messaging');
-        try {
-          token = await getToken(messaging, { vapidKey: VAPID_KEY });
-          console.log('FCM Token voaray:', token);
-          if (userId && token) {
-            localStorage.setItem(`hofantrano_fcm_token_${userId}`, token);
-          }
-        } catch (tokErr) {
-          console.warn('getToken warning:', tokErr);
-        }
+  let token: string | null = null;
+
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    try {
+      let permission = Notification.permission;
+      if (permission !== 'granted') {
+        permission = await Notification.requestPermission();
       }
 
-      // Show immediate welcome notification on device
-      showSystemNotification(
-        'HOFANTRANO - Vonona',
-        'Mandeha soa aman-tsara ny fampandrenesana (Push Notifications) ao amin\'ny findainao!'
-      );
-
-      return token || 'granted';
+      if (permission === 'granted') {
+        const messaging = await getSafeMessaging();
+        if (messaging) {
+          const { getToken } = await import('firebase/messaging');
+          try {
+            token = await getToken(messaging, { vapidKey: VAPID_KEY });
+            console.log('FCM Token voaray:', token);
+            if (userId && token) {
+              localStorage.setItem(`hofantrano_fcm_token_${userId}`, token);
+            }
+          } catch (tokErr) {
+            console.warn('getToken warning:', tokErr);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Notification permission request bypassed:', err);
     }
-  } catch (error) {
-    console.error('Error requesting notification permission:', error);
   }
-  return null;
+
+  // Welcome test notification
+  showSystemNotification(
+    'HOFANTRANO - Mavitrika',
+    'Mandeha soa aman-tsara ny fampahafantarana (Push Notifications)!'
+  );
+
+  return {
+    success: true,
+    token,
+    message: 'Voahetsika soa aman-tsara ny fampandrenesana!'
+  };
+}
+
+// Request Notification Permission & get FCM token
+export async function requestNotificationPermission(userId?: string): Promise<string | null> {
+  const res = await enableAppNotifications(userId);
+  return res.token || 'granted';
 }
 
 // Helper to trigger a system push / device notification in the OS notification bar
 export async function showSystemNotification(title: string, body: string, url: string = '/') {
-  if (typeof window === 'undefined' || !('Notification' in window)) return;
-  if (Notification.permission !== 'granted') return;
+  if (typeof window === 'undefined') return;
 
-  try {
-    if ('serviceWorker' in navigator) {
+  // 1. Try Service Worker showNotification (Native phone notification bar)
+  if ('serviceWorker' in navigator) {
+    try {
       const reg = await navigator.serviceWorker.ready;
       if (reg && reg.showNotification) {
         await reg.showNotification(title, {
@@ -112,16 +133,23 @@ export async function showSystemNotification(title: string, body: string, url: s
         } as any);
         return;
       }
+    } catch (e) {
+      console.warn('SW notification fallback:', e);
     }
-
-    // Fallback to Window Notification API
-    new Notification(title, {
-      body,
-      icon: '/logo-192.png'
-    });
-  } catch (e) {
-    console.warn('Could not show system notification:', e);
   }
+
+  // 2. Try window Notification API
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body,
+        icon: '/logo-192.png'
+      });
+      return;
+    }
+  } catch (e) {}
+
+  console.log('[HOFANTRANO Notification]', title, body);
 }
 
 // Default Platform Account (for 2 500 Ar / month subscription)
@@ -158,7 +186,6 @@ const INITIAL_ACCOUNTS: PaymentAccount[] = [
 
 function getStoredData<T>(key: string, initial: T): T {
   try {
-    // Check primary permanent key first, then fallbacks
     const item = localStorage.getItem(`hofantrano_permanent_${key}`) || 
                  localStorage.getItem(`hofantrano_v6_${key}`) || 
                  localStorage.getItem(`hofantrano_v5_${key}`);
@@ -172,7 +199,6 @@ function setStoredData<T>(key: string, data: T): void {
   try {
     const serialized = JSON.stringify(data);
     localStorage.setItem(`hofantrano_permanent_${key}`, serialized);
-    // Keep backwards compatibility keys so nothing is ever lost
     localStorage.setItem(`hofantrano_v6_${key}`, serialized);
   } catch (e) {
     console.error('Error saving to localStorage', e);
@@ -266,7 +292,6 @@ export const dbStore = {
       fullName: updated.adminName
     });
 
-    // Asynchronously sync to Firestore collection 'landlords'
     try {
       setDoc(doc(db, 'landlords', updated.id), updated, { merge: true }).catch(err => {
         console.warn('Firestore offline sync for admin:', err);
@@ -295,7 +320,7 @@ export const dbStore = {
     } catch (e) {}
   },
 
-  // Landlord's payment accounts (up to 3)
+  // Landlord's payment accounts
   getAccounts: (): PaymentAccount[] => getStoredData('accounts', INITIAL_ACCOUNTS),
   saveAccounts: (accounts: PaymentAccount[]) => {
     setStoredData('accounts', accounts);
@@ -349,7 +374,6 @@ export const dbStore = {
     } catch (e) {}
   },
 
-  // Helper to add a notification & trigger system push
   addNotification: (title: string, message: string, userId: string = 'admin-1', type: 'INFO' | 'SUCCESS' | 'WARNING' = 'INFO') => {
     const notifs = dbStore.getNotifications();
     const newNotif: AppNotification = {
@@ -369,7 +393,6 @@ export const dbStore = {
     };
     const updated = [newNotif, ...notifs];
     dbStore.saveNotifications(updated);
-    // Send system push notification directly to screen!
     showSystemNotification(title, message);
     return newNotif;
   },

@@ -3,11 +3,11 @@ import { Download, Smartphone, Share, CheckCircle2, X } from 'lucide-react';
 import { usePWAInstall } from './usePWAInstall';
 
 export const InstallPWA: React.FC = () => {
-  const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const { isInstallable, isInstalled, isIOS, install, markAsInstalled } = usePWAInstall();
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
-  // If already running in standalone mode (already installed), don't show floating banner
+  // If already installed, NEVER render the install banner
   if (isInstalled || dismissed) {
     return null;
   }
@@ -21,6 +21,11 @@ export const InstallPWA: React.FC = () => {
     } else {
       setShowGuideModal(true);
     }
+  };
+
+  const handleConfirmAlreadyInstalled = () => {
+    markAsInstalled();
+    setShowGuideModal(false);
   };
 
   return (
@@ -147,12 +152,22 @@ export const InstallPWA: React.FC = () => {
               )}
             </div>
 
-            <button
-              onClick={() => setShowGuideModal(false)}
-              className="mt-5 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/20 transition"
-            >
-              Fantatro, misaotra tompoko
-            </button>
+            <div className="mt-5 space-y-2">
+              <button
+                onClick={handleConfirmAlreadyInstalled}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/20 transition flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Efa voapetraka (Efa nanao installation)
+              </button>
+
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="w-full py-2.5 text-xs text-slate-500 hover:text-slate-800 transition"
+              >
+                Akatony
+              </button>
+            </div>
           </div>
         </div>
       )}
